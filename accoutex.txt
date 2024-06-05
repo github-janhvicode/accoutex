@@ -1,0 +1,128 @@
+PROBLEM STMT 2 SOLUTION ::
+1.SYSTEM HEALTH MONITORING CODE
+import psutil
+import logging
+from datetime import datetime
+
+# Configure logging
+logging.basicConfig(filename='system_health.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+# Thresholds
+CPU_THRESHOLD = 80  # in percentage
+MEMORY_THRESHOLD = 80  # in percentage
+DISK_THRESHOLD = 80  # in percentage
+PROCESS_THRESHOLD = 300  # number of processes
+
+def check_cpu_usage():
+    cpu_usage = psutil.cpu_percent(interval=1)
+    if cpu_usage > CPU_THRESHOLD:
+        logging.warning(f'High CPU usage detected: {cpu_usage}%')
+    return cpu_usage
+
+def check_memory_usage():
+    memory = psutil.virtual_memory()
+    memory_usage = memory.percent
+    if memory_usage > MEMORY_THRESHOLD:
+        logging.warning(f'High memory usage detected: {memory_usage}%')
+    return memory_usage
+
+def check_disk_space():
+    disk = psutil.disk_usage('/')
+    disk_usage = disk.percent
+    if disk_usage > DISK_THRESHOLD:
+        logging.warning(f'Low disk space detected: {disk_usage}% used')
+    return disk_usage
+
+def check_running_processes():
+    process_count = len(psutil.pids())
+    if process_count > PROCESS_THRESHOLD:
+        logging.warning(f'High number of running processes detected: {process_count}')
+    return process_count
+
+def log_system_health():
+    cpu = check_cpu_usage()
+    memory = check_memory_usage()
+    disk = check_disk_space()
+    processes = check_running_processes()
+    
+    logging.info(f'System Health - CPU: {cpu}%, Memory: {memory}%, Disk: {disk}%, Processes: {processes}')
+
+if name == 'main':
+    log_system_health()
+
+
+
+
+3.LOG FILE AALYSER
+import re
+from collections import Counter, defaultdict
+
+def parse_log_line(line):
+    """Parse a single line from a web server log."""
+    log_pattern = re.compile(r'(?P<ip>\d+\.\d+\.\d+\.\d+) - - \[(?P<date>.*?)\] "(?P<request>.*?)" (?P<status>\d{3}) (?P<size>\d+|-)')
+    match = log_pattern.match(line)
+    if match:
+        return match.groupdict()
+    return None
+
+def analyze_log_file(log_file_path):
+    """Analyze the log file and return a summary report."""
+    with open(log_file_path, 'r') as file:
+        log_lines = file.readlines()
+    
+    total_requests = len(log_lines)
+    status_counter = Counter()
+    page_counter = Counter()
+    ip_counter = Counter()
+    error_404 = 0
+    
+    for line in log_lines:
+        log_entry = parse_log_line(line)
+        if log_entry:
+            status = log_entry['status']
+            request = log_entry['request']
+            ip = log_entry['ip']
+            
+            status_counter[status] += 1
+            ip_counter[ip] += 1
+            
+            # Extract the requested page
+            request_parts = request.split()
+            if len(request_parts) > 1:
+                page = request_parts[1]
+                page_counter[page] += 1
+            
+            # Count 404 errors
+            if status == '404':
+                error_404 += 1
+    
+    # Generate the report
+    report = {
+        "total_requests": total_requests,
+        "status_counts": dict(status_counter),
+        "most_requested_pages": page_counter.most_common(10),
+        "ip_with_most_requests": ip_counter.most_common(10),
+        "404_errors": error_404
+    }
+    
+    return report
+
+def print_report(report):
+    """Print the summarized report."""
+    print("----- Log File Analysis Report -----")
+    print(f"Total Requests: {report['total_requests']}")
+    print("\nStatus Codes:")
+    for status, count in report['status_counts'].items():
+        print(f"  {status}: {count}")
+    print("\nMost Requested Pages:")
+    for page, count in report['most_requested_pages']:
+        print(f"  {page}: {count}")
+    print("\nIP Addresses with Most Requests:")
+    for ip, count in report['ip_with_most_requests']:
+        print(f"  {ip}: {count}")
+    print(f"\nTotal 404 Errors: {report['404_errors']}")
+
+# Example usage:
+log_file_path = 'path/to/your/logfile.log'
+report = analyze_log_file(log_file_path)
+print_report(report)
